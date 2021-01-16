@@ -76,6 +76,24 @@ func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // FileQueryHandler : 查询批量的文件元信息
+//func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
+//	r.ParseForm()
+//
+//	limitCnt, _ := strconv.Atoi(r.Form.Get("limit"))
+//	//filehash := r.Form.Get("username")
+//	fileMetas := meta.GetLastFileMetas(limitCnt)
+//	if err != nil {
+//		w.WriteHeader(http.StatusInternalServerError)
+//		return
+//	}
+//
+//	data, err := json.Marshal(fileMetas)
+//	if err != nil {
+//		w.WriteHeader(http.StatusInternalServerError)
+//		return
+//	}
+//	w.Write(data)
+//}
 
 // DownloadHandler : 文件下载接口
 func DownloadHandler(w http.ResponseWriter, r *http.Request) {
