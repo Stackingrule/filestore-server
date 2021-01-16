@@ -8,17 +8,17 @@ import (
 
 func main() {
 
+	//设置访问的路由
 	http.HandleFunc("/file/upload", handler.UploadHandler)
-	http.HandleFunc("file/upload/suc", handler.UploadSucHandler)
-	http.HandleFunc("file/meta", handler.GetFileMetaHandler)
-	http.HandleFunc("file/download", handler.DownloadHandler)
+	http.HandleFunc("/file/upload/suc", handler.UploadSucHandler)
+	http.HandleFunc("/file/meta", handler.GetFileMetaHandler)
+	http.HandleFunc("/file/download", handler.DownloadHandler)
+	http.HandleFunc("/file/update", handler.UpdateHandler)
+	http.HandleFunc("/file/delete", handler.FileDeleteHandler)
 
-	var addr = ":8089"
-	err := http.ListenAndServe(addr, nil)
+	err := http.ListenAndServe(":8089", nil) //设置监听的端口
 	if err != nil {
-		log.Printf("Failed to start server, err : %s\n", err.Error())
-	} else {
-		log.Printf("Start serve %s!\n", addr)
+		log.Fatal("ListenAndServe: ", err)
 	}
 
 }
