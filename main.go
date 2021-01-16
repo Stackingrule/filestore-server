@@ -10,6 +10,8 @@ func main() {
 
 	http.HandleFunc("/file/upload", handler.UploadHandler)
 	http.HandleFunc("file/upload/suc", handler.UploadSucHandler)
+	http.HandleFunc("file/meta", handler.GetFileMetaHandler)
+	http.HandleFunc("file/download", handler.DownloadHandler)
 
 	var addr = ":8089"
 	err := http.ListenAndServe(addr, nil)
