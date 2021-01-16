@@ -1,12 +1,15 @@
 package handler
 
 import (
+	"filestore-server/meta"
+	"filestore-server/util"
 	"io"
 	"io/ioutil"
 	"log"
 	_ "net"
 	"net/http"
 	"os"
+	"time"
 )
 
 // UploadHandler ： 处理文件上传
@@ -28,16 +31,26 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer file.Close()
 
-		newFile, err := os.Create("./tmp/" + head.Filename)
-		if err != nil {
-			log.Printf("Failed to create file, err: %s\n", err.Error())
+		fileMeta := meta.FileMeta{
+			FileName: head.Filename,
+			Location: "./tmp/" + head.Filename,
+			UploadAt: time.Now().Format("2006-01-06 15:04:05"),
 		}
-		newFile.Close()
 
-		_, err = io.Copy(newFile, file)
+		newFile, err := os.Create(fileMeta.Location)
+		if err != nil {
+			log.Printf("ile to create file, err: %s\n", err.Error())
+		}
+		defer newFile.Close()
+
+		fileMeta.FileSize, err = io.Copy(newFile, file)
 		if err != nil {
 			log.Printf("Failed to save data into file, err: %s\n", err.Error())
 		}
+
+		newFile.Seek(0, 0)
+		fileMeta.FileSha1 = util.FileSha1(newFile)
+		meta.UpdateFileMeta(fileMeta)
 
 		http.Redirect(w, r, "/file/upload/suc", http.StatusFound)
 	}
@@ -49,6 +62,9 @@ func UploadSucHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetFileMetaHandler : 获取文件元信息
+func GetFileMetaHandler() {
+
+}
 
 // FileQueryHandler : 查询批量的文件元信息
 
