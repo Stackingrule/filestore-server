@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-
+	"os"
+	"path"
 	"strconv"
 	"time"
 
@@ -60,4 +61,42 @@ func InitialMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // UploadPartHandler : 上传文件分块
+func UploadPartHandler(w http.ResponseWriter, r *http.Request) {
+	// 1. 解析用户请求参数
+	r.ParseForm()
+	// username := r.Form.Get("username")
+	uploadID := r.Form.Get("uploadid")
+	chunkIndex := r.Form.Get("index")
+
+	// 2. 获得redis连接池中的一个连接
+	rConn := rPool.RedisPool().Get()
+	defer rConn.Close()
+
+	// 3. 获得文件句柄，用于存储分块内容
+	fpath := "/data/" + uploadID + "/" + chunkIndex
+	os.MkdirAll(path.Dir(fpath), 0744)
+	fd, err := os.Create(fpath)
+	if err != nil {
+		w.Write(util.NewRespMsg(-1, "Upload part failed", nil).JSONBytes())
+		return
+	}
+	defer fd.Close()
+
+	buf := make([]byte, 1024*1024)
+	for {
+		n, err := r.Body.Read(buf)
+		fd.Write(buf[:n])
+		if err != nil {
+			break
+		}
+	}
+
+	// 4. 更新redis缓存状态
+	rConn.Do("HSET", "MP_"+uploadID, "chkidx_"+chunkIndex, 1)
+
+	// 5. 返回处理结果到客户端
+	w.Write(util.NewRespMsg(0, "OK", nil).JSONBytes())
+
+}
+
 // CompleteUploadHandler : 通知上传合并
