@@ -18,6 +18,7 @@ func main() {
 	http.HandleFunc("/file/delete", handler.FileDeleteHandler)
 
 	http.HandleFunc("/user/signup", handler.SignupHandler)
+	http.HandleFunc("/user/signin", handler.SigninHandler)
 
 	err := http.ListenAndServe(":8089", nil) //设置监听的端口
 	if err != nil {

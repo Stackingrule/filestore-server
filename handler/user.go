@@ -1,10 +1,10 @@
 package handler
 
 import (
-	_ "fmt"
+	"fmt"
 	"io/ioutil"
 	"net/http"
-	_ "time"
+	"time"
 
 	dblayer "filestore-server/db"
 	"filestore-server/util"
@@ -24,10 +24,10 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Write(data)
+
 	}
 
 	r.ParseForm()
-
 	username := r.Form.Get("username")
 	passwd := r.Form.Get("password")
 
@@ -45,4 +45,61 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Write([]byte("FAILED"))
 	}
+}
+
+// SignInHandler : 登录接口
+func SigninHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		data, err := ioutil.ReadFile("./static/view/signin.html")
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Write(data)
+
+	}
+
+	r.ParseForm()
+	username := r.Form.Get("username")
+	password := r.Form.Get("password")
+
+	encPasswd := util.Sha1([]byte(password + pwdSalt))
+
+	// 1. 校验用户名和密码
+	pwdChecked := dblayer.UserSignin(username, encPasswd)
+	if !pwdChecked {
+		w.Write([]byte("FAILED"))
+		return
+	}
+
+	// 2. 生成访问凭证(token)
+	token := GenToken(username)
+	upRes := dblayer.UpdateToken(username, token)
+	if !upRes {
+		w.Write([]byte("FAILED"))
+		return
+	}
+
+	// 3. 登录成功后重定向到首页
+	w.Write([]byte("http://" + r.Host + "/static/view/home.html"))
+
+}
+
+// GenToken : 生成token
+func GenToken(username string) string {
+	// 40位字符:md5(username+timestamp+token_salt)+timestamp[:8]
+	ts := fmt.Sprintf("%x", time.Now().Unix())
+	tokenPrefix := util.MD5([]byte(username + ts + "_tokensalt"))
+	return tokenPrefix + ts[:8]
+}
+
+// IsTokenValid : token是否有效
+func IsTokenValid(token string) bool {
+	if len(token) != 40 {
+		return false
+	}
+	// TODO: 判断token的时效性，是否过期
+	// TODO: 从数据库表tbl_user_token查询username对应的token信息
+	// TODO: 对比两个token是否一致
+	return true
 }
