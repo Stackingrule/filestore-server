@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	dblayer "filestore-server/db"
 	"filestore-server/meta"
 	"filestore-server/util"
 	"io"
@@ -10,6 +11,7 @@ import (
 	_ "net"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -81,26 +83,6 @@ func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-// FileQueryHandler : 查询批量的文件元信息
-//func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
-//	r.ParseForm()
-//
-//	limitCnt, _ := strconv.Atoi(r.Form.Get("limit"))
-//	//filehash := r.Form.Get("username")
-//	fileMetas := meta.GetLastFileMetas(limitCnt)
-//	if err != nil {
-//		w.WriteHeader(http.StatusInternalServerError)
-//		return
-//	}
-//
-//	data, err := json.Marshal(fileMetas)
-//	if err != nil {
-//		w.WriteHeader(http.StatusInternalServerError)
-//		return
-//	}
-//	w.Write(data)
-//}
-
 // DownloadHandler : 文件下载接口
 func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
@@ -126,7 +108,7 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // FileMetaUpdateHandler ： 更新元信息接口(重命名)
-func UpdateHandler(w http.ResponseWriter, r *http.Request) {
+func FileMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	opType := r.Form.Get("op")
@@ -142,10 +124,11 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	curFileMeta := meta.GetMeta(fileSha1)
+	curFileMeta := meta.GetFileMeta(fileSha1)
 	curFileMeta.FileName = newFileName
 	meta.UpdateFileMeta(curFileMeta)
 
+	w.WriteHeader(http.StatusOK)
 	data, err := json.Marshal(curFileMeta)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -153,7 +136,27 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
 
+// FileQueryHandler : 查询批量的文件元信息
+func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+
+	limitCnt, _ := strconv.Atoi(r.Form.Get("limit"))
+	username := r.Form.Get("username")
+	//fileMetas, _ := meta.GetLastFileMetasDB(limitCnt)
+	userFiles, err := dblayer.QueryUserFileMetas(username, limitCnt)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	data, err := json.Marshal(userFiles)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write(data)
 }
 
 // FileDeleteHandler : 删除文件及元信息
