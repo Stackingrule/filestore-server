@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	dblayer "filestore-server/db"
 	"filestore-server/meta"
-	"filestore-server/store/ceph"
+	_ "filestore-server/store/ceph"
+	"filestore-server/store/oss"
 	"filestore-server/util"
 	"fmt"
-	"gopkg.in/amz.v1/s3"
+
+	_ "gopkg.in/amz.v1/s3"
 	"io"
 	"io/ioutil"
 	"log"
@@ -58,13 +60,25 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		newFile.Seek(0, 0)
 		fileMeta.FileSha1 = util.FileSha1(newFile)
 
-		// 同时将文件写入ceph存储
+		// 同时将文件写入ceph存储/oss
 		newFile.Seek(0, 0)
-		data, _ := ioutil.ReadAll(newFile)
-		bucket := ceph.GetCephBucket("userfile")
-		cephPath := "/ceph/" + fileMeta.FileSha1
-		bucket.Put(cephPath, data, "octet-stream", s3.PublicRead)
-		fileMeta.Location = cephPath
+
+		// 写入ceph
+		//data, _ := ioutil.ReadAll(newFile)
+		//bucket := ceph.GetCephBucket("userfile")
+		//cephPath := "/ceph/" + fileMeta.FileSha1
+		//bucket.Put(cephPath, data, "octet-stream", s3.PublicRead)
+		//fileMeta.Location = cephPath
+
+		// 写入oss
+		ossPath := "oss/" + fileMeta.FileSha1
+		err = oss.Bucket().PutObject(ossPath, newFile)
+		if err != nil {
+			log.Println(err.Error())
+			w.Write([]byte("Upload Failed!"))
+			return
+		}
+		fileMeta.Location = ossPath
 
 		//meta.UpdateFileMeta(fileMeta)
 		_ = meta.UpdateFileMetaDB(fileMeta)
