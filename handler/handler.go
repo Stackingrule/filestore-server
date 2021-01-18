@@ -2,8 +2,11 @@ package handler
 
 import (
 	"encoding/json"
+	"filestore-server/common"
+	cfg "filestore-server/config"
 	dblayer "filestore-server/db"
 	"filestore-server/meta"
+	"filestore-server/mq"
 	_ "filestore-server/store/ceph"
 	"filestore-server/store/oss"
 	"filestore-server/util"
@@ -72,13 +75,29 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		// 写入oss
 		ossPath := "oss/" + fileMeta.FileSha1
-		err = oss.Bucket().PutObject(ossPath, newFile)
-		if err != nil {
-			log.Println(err.Error())
-			w.Write([]byte("Upload Failed!"))
-			return
+		//err = oss.Bucket().PutObject(ossPath, newFile)
+		//if err != nil {
+		//	log.Println(err.Error())
+		//	w.Write([]byte("Upload Failed!"))
+		//	return
+		//}
+		//fileMeta.Location = ossPath
+
+		data := mq.TransferData{
+			FileHash:      fileMeta.FileSha1,
+			CurLocation:   fileMeta.Location,
+			DestLocation:  ossPath,
+			DestStoreType: common.StoreOSS,
 		}
-		fileMeta.Location = ossPath
+		pubData, _ := json.Marshal(data)
+		suc := mq.Publish(
+			cfg.TransExchangeName,
+			cfg.TransOSSRoutingKey,
+			pubData)
+		if !suc {
+			// TODO: 加入重拾发送消息逻辑
+		}
+
 
 		//meta.UpdateFileMeta(fileMeta)
 		_ = meta.UpdateFileMetaDB(fileMeta)
@@ -86,7 +105,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		// 更新用户文件表记录
 		r.ParseForm()
 		username := r.Form.Get("username")
-		suc := dblayer.OnUserFileUploadFinished(username, fileMeta.FileSha1, fileMeta.FileName, fileMeta.FileSize)
+		suc = dblayer.OnUserFileUploadFinished(username, fileMeta.FileSha1, fileMeta.FileName, fileMeta.FileSize)
 		if suc {
 			http.Redirect(w, r, "/file/upload/suc", http.StatusFound)
 		} else {

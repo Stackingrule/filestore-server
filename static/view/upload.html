@@ -58,12 +58,8 @@
   function onUpload() {
     var upUrl = "/file/upload?" + queryParams();
     var upEntry = localStorage.getItem("uploadEntry");
-    if (upEntry != "" ) {
-      if (upEntry.indexOf("http:")>=0) {
-        upUrl = upEntry + "/file/upload?" + queryParams();
-      } else {
-        upUrl = "http://" + upEntry + "/file/upload?" + queryParams();
-      }
+    if (upEntry != "") {
+      upUrl = "http://" + upEntry + "/file/upload?" + queryParams();
     }
     $.ajax({
       url: upUrl,

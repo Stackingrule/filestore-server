@@ -12,4 +12,6 @@ const (
 	// OSSAccessKeySecret : oss访问key secret
 	// OSSAccessKeySecret = "<你的AccessKeySecret>"
 
+	OSSAccesskeyID = "LTAI4GJYrmbuyYDRFAL6DzFf"
+	OSSAccessKeySecret = "43wWysQhr0auNqpS7fkm6Mfjh2p7zV"
 )
