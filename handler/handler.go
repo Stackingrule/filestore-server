@@ -259,3 +259,12 @@ func TryFastUploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // DownloadURLHandler : 生成文件的下载地址
+func DownloadURLHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	filehash := r.Form.Get("filehash")
+
+	// 从文件表查找记录
+	row, _ := dblayer.GetFileMeta(filehash)
+	signeURL := oss.DownloadURL(row.FileAddr.String)
+	w.Write([]byte(signeURL))
+}
